@@ -1,0 +1,8 @@
+{
+  "name": "chat-with-pdf",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
+}
