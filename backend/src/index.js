@@ -1,8 +1,11 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import documentsRouter from "./routes/documents.js";
 
 dotenv.config(); // loads variables from .env into process.env
+
+app.use("/api/documents", documentsRouter);
 
 const app = express();
 app.use(cors());        // allow requests from other origins (our React app later)
