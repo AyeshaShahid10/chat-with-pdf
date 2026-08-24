@@ -5,11 +5,11 @@ import documentsRouter from "./routes/documents.js";
 
 dotenv.config(); // loads variables from .env into process.env
 
-app.use("/api/documents", documentsRouter);
-
 const app = express();
-app.use(cors());        // allow requests from other origins (our React app later)
+
+app.use(cors());         // allow requests from other origins (our React app)
 app.use(express.json()); // parse incoming JSON request bodies
+app.use("/api/documents", documentsRouter); // our upload/PDF routes
 
 // simple health check route — proves the server is alive
 app.get("/health", (req, res) => {
