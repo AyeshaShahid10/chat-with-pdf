@@ -1,7 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
-dotenv.config();
-
+dotenv.config({ quiet: true });
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Turns a single piece of text into a vector (array of numbers).
