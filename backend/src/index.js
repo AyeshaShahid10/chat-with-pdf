@@ -2,8 +2,13 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import documentsRouter from "./routes/documents.js";
+import mongoose from "mongoose";
 
-dotenv.config(); // loads variables from .env into process.env
+dotenv.config({ quiet: true });
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected Successfully"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 const app = express();
 
