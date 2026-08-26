@@ -63,8 +63,14 @@ function App() {
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-    <p><strong>Chunks created:</strong> {uploadResult.chunkCount}</p>
-    <p style={{ color: "green" }}>✓ Ready to chat with this document</p>
+      {uploadResult && (
+        <div style={{ marginTop: "1rem", background: "#f5f5f5", padding: "1rem" }}>
+          <p><strong>Filename:</strong> {uploadResult.filename}</p>
+          <p><strong>Pages:</strong> {uploadResult.pages}</p>
+          <p><strong>Chunks created:</strong> {uploadResult.chunkCount}</p>
+          <p style={{ color: "green" }}>✓ Ready to chat with this document</p>
+        </div>
+      )}
     </div>
   );
 }
