@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import documentsRouter from "./routes/documents.js";
 import mongoose from "mongoose";
 import chatRouter from "./routes/chat.js";
+import authRouter from "./routes/auth.js";
 
 dotenv.config({ quiet: true });
 
@@ -17,6 +18,7 @@ app.use(cors());         // allow requests from other origins (our React app)
 app.use(express.json()); // parse incoming JSON request bodies
 app.use("/api/documents", documentsRouter); // our upload/PDF routes
 app.use("/api/chat", chatRouter); // our chat route
+app.use("/api/auth", authRouter); // our authentication routes
 
 // simple health check route — proves the server is alive
 app.get("/health", (req, res) => {
