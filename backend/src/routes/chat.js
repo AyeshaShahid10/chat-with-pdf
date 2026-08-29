@@ -1,17 +1,25 @@
 import express from "express";
 import { retrieveRelevantChunks } from "../services/retrieval.js";
 import { generateAnswer } from "../services/answer.js";
+import { requireAuth } from "../middleware/auth.js";
+import Document from "../models/Document.js";
 
 const router = express.Router();
 
 // POST /api/chat
 // body: { documentId, question }
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { documentId, question } = req.body;
 
     if (!documentId || !question) {
       return res.status(400).json({ error: "documentId and question are required" });
+    }
+
+    // Verify this document belongs to the logged-in user
+    const document = await Document.findOne({ _id: documentId, userId: req.userId });
+    if (!document) {
+      return res.status(404).json({ error: "Document not found" });
     }
 
     const relevantChunks = await retrieveRelevantChunks(question, documentId);

@@ -6,6 +6,7 @@ import Document from "../models/Document.js";
 import Chunk from "../models/Chunk.js";
 import { chunkText } from "../services/chunking.js";
 import { embedChunks } from "../services/embeddings.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const require = createRequire(import.meta.url);
 const pdfParse = require("pdf-parse");
@@ -20,8 +21,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // POST /api/documents/upload
-router.post("/upload", upload.single("file"), async (req, res) => {
-  try {
+  router.post("/upload", requireAuth, upload.single("file"), async (req, res) => {  try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
@@ -32,6 +32,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 
     // 2. Save a Document record (metadata about the file)
     const document = await Document.create({
+      userId: req.userId,
       filename: req.file.originalname,
       pageCount: parsed.numpages,
     });
@@ -63,6 +64,17 @@ router.post("/upload", upload.single("file"), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to process PDF" });
+  }
+});
+
+// GET /api/documents - list only the logged-in user's documents
+router.get("/", requireAuth, async (req, res) => {
+  try {
+    const documents = await Document.find({ userId: req.userId }).sort({ uploadedAt: -1 });
+    res.json(documents);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch documents" });
   }
 });
 

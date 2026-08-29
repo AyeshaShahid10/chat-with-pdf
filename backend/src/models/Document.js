@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const documentSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   filename: String,
   pageCount: Number,
   uploadedAt: { type: Date, default: Date.now },
