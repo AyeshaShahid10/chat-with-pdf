@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Auth from "./Auth";
 
 function App() {
   const [backendStatus, setBackendStatus] = useState("checking...");
@@ -6,6 +7,17 @@ function App() {
   const [uploadResult, setUploadResult] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [userEmail, setUserEmail] = useState(localStorage.getItem("email"));
+
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("email");
+  setToken(null);
+  setUserEmail(null);
+  setUploadResult(null);
+  setMessages([]);
+  };
 
   // Chat-related state
   const [question, setQuestion] = useState("");
@@ -38,6 +50,7 @@ function App() {
     try {
       const res = await fetch("http://localhost:4000/api/documents/upload", {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
@@ -63,13 +76,15 @@ function App() {
     try {
       const res = await fetch("http://localhost:4000/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           documentId: uploadResult.documentId,
           question: userMessage.text,
         }),
       });
-
       if (!res.ok) throw new Error("Failed to get answer");
 
       const data = await res.json();
@@ -90,11 +105,18 @@ function App() {
       handleAsk();
     }
   };
+  if (!token) {
+  return <Auth onAuthSuccess={(t, e) => { setToken(t); setUserEmail(e); }} />;
+}  
 
   return (
     <div style={{ fontFamily: "sans-serif", padding: "2rem", maxWidth: 600 }}>
       <h1>Chat with your PDF</h1>
       <p>Backend status: {backendStatus}</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>Logged in as {userEmail}</span>
+        <button onClick={handleLogout}>Log out</button>
+      </div>
 
       <hr style={{ margin: "1.5rem 0" }} />
 
