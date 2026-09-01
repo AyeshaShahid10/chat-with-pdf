@@ -9,20 +9,24 @@ function App() {
   const [error, setError] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [userEmail, setUserEmail] = useState(localStorage.getItem("email"));
-
-  const handleLogout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("email");
-  setToken(null);
-  setUserEmail(null);
-  setUploadResult(null);
-  setMessages([]);
-  };
+  const [documents, setDocuments] = useState([]);
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   // Chat-related state
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]); // { role: 'user'|'assistant', text }
   const [asking, setAsking] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("email");
+    setToken(null);
+    setUserEmail(null);
+    setUploadResult(null);
+    setSelectedDocument(null);
+    setDocuments([]);
+    setMessages([]);
+  };
 
   useEffect(() => {
     fetch("http://localhost:4000/health")
@@ -30,6 +34,17 @@ function App() {
       .then((data) => setBackendStatus(data.message))
       .catch(() => setBackendStatus("Could not reach backend"));
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+
+    fetch("http://localhost:4000/api/documents", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setDocuments(data))
+      .catch(() => setDocuments([]));
+  }, [token]);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -58,6 +73,15 @@ function App() {
 
       const data = await res.json();
       setUploadResult(data);
+      setSelectedDocument(data);
+      setMessages([]);
+
+      // Refresh the document list to include this new upload
+      fetch("http://localhost:4000/api/documents", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((docs) => setDocuments(docs));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -66,7 +90,7 @@ function App() {
   };
 
   const handleAsk = async () => {
-    if (!question.trim() || !uploadResult) return;
+    if (!question.trim() || !selectedDocument) return;
 
     const userMessage = { role: "user", text: question };
     setMessages((prev) => [...prev, userMessage]);
@@ -81,7 +105,7 @@ function App() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          documentId: uploadResult.documentId,
+          documentId: selectedDocument.documentId || selectedDocument._id,
           question: userMessage.text,
         }),
       });
@@ -105,9 +129,17 @@ function App() {
       handleAsk();
     }
   };
+
   if (!token) {
-  return <Auth onAuthSuccess={(t, e) => { setToken(t); setUserEmail(e); }} />;
-}  
+    return <Auth onAuthSuccess={(t, e) => { setToken(t); setUserEmail(e); }} />;
+  }
+
+  // Normalize field names — a fresh upload response uses "pages"/"chunkCount",
+  // while a document from the list uses "pageCount". This lets the summary box
+  // below work no matter which source selectedDocument came from.
+  const displayName = selectedDocument?.filename;
+  const displayPages = selectedDocument?.pages ?? selectedDocument?.pageCount;
+  const displayChunkCount = selectedDocument?.chunkCount;
 
   return (
     <div style={{ fontFamily: "sans-serif", padding: "2rem", maxWidth: 600 }}>
@@ -121,6 +153,38 @@ function App() {
       <hr style={{ margin: "1.5rem 0" }} />
 
       <h2>Upload a PDF</h2>
+
+      {documents.length > 0 && (
+        <div style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>
+          <h3>Your documents</h3>
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {documents.map((doc) => (
+              <li key={doc._id} style={{ marginBottom: "0.5rem" }}>
+                <button
+                  onClick={() => {
+                    setSelectedDocument(doc);
+                    setUploadResult(null); // clear stale upload-only data
+                    setMessages([]); // fresh conversation when switching documents
+                  }}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "0.5rem",
+                    background: selectedDocument?._id === doc._id ? "#0070f3" : "#f0f0f0",
+                    color: selectedDocument?._id === doc._id ? "white" : "black",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {doc.filename} ({doc.pageCount} pages)
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <input type="file" accept="application/pdf" onChange={handleFileChange} />
       <button onClick={handleUpload} disabled={!file || uploading} style={{ marginLeft: "1rem" }}>
         {uploading ? "Uploading..." : "Upload"}
@@ -128,16 +192,18 @@ function App() {
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {uploadResult && (
+      {selectedDocument && (
         <div style={{ marginTop: "1rem", background: "#f5f5f5", padding: "1rem" }}>
-          <p><strong>Filename:</strong> {uploadResult.filename}</p>
-          <p><strong>Pages:</strong> {uploadResult.pages}</p>
-          <p><strong>Chunks created:</strong> {uploadResult.chunkCount}</p>
+          <p><strong>Filename:</strong> {displayName}</p>
+          <p><strong>Pages:</strong> {displayPages}</p>
+          {displayChunkCount != null && (
+            <p><strong>Chunks created:</strong> {displayChunkCount}</p>
+          )}
           <p style={{ color: "green" }}>✓ Ready to chat with this document</p>
         </div>
       )}
 
-      {uploadResult && (
+      {selectedDocument && (
         <div style={{ marginTop: "2rem" }}>
           <h2>Ask a question</h2>
 
