@@ -112,8 +112,11 @@ function App() {
       if (!res.ok) throw new Error("Failed to get answer");
 
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", text: data.answer }]);
-    } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", text: data.answer, sources: data.sources },
+        ]);    
+      } catch (err) {
       setMessages((prev) => [
         ...prev,
         { role: "assistant", text: `Error: ${err.message}` },
@@ -242,6 +245,11 @@ function App() {
                 >
                   {msg.text}
                 </span>
+                {msg.sources && msg.sources.length > 0 && (
+                  <div style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
+                    Sources: {msg.sources.map((s) => `chunk ${s.chunkIndex + 1}`).join(", ")}
+                  </div>
+                )}
               </div>
             ))}
             {asking && <p style={{ color: "#888" }}>Thinking...</p>}
